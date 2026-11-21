@@ -1,0 +1,26 @@
+@import '../../variables';
+
+@keyframes night-blink-background {
+  from {
+    background-color: @nightHeader;
+  }
+
+  to {
+    background-color: @nightYellow;
+  }
+}
+
+.detail {
+  &:target .detail-header {
+    animation-name: night-blink-background;
+  }
+}
+
+.detail-header {
+  background: @nightHeader;
+  color: @nightTextHeaders;
+}
+
+div.deprecated {
+  background-color: @nightDeprecated;
+}

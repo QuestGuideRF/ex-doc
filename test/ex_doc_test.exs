@@ -1,0 +1,91 @@
+defmodule ExDocTest do
+  use ExUnit.Case
+
+  # Простой ретривер, который возвращает все, что в него передано.
+  defmodule IdentityRetriever do
+    def docs_from_dir(source, config) do
+      {source, config}
+    end
+  end
+
+  # Простой форматтер, который возвращает все, что в него передано.
+  defmodule IdentityFormatter do
+    def run(modules, config) do
+      {modules, config}
+    end
+  end
+
+  test "build_config и нормализовать_опции" do
+    project = "Elixir"
+    version = "1"
+
+    opts_with_output =
+      &[
+        formatter: IdentityFormatter,
+        retriever: IdentityRetriever,
+        source_root: "root_dir",
+        source_beam: "beam_dir",
+        output: &1
+      ]
+
+    {_, config} = ExDoc.generate_docs(project, version, opts_with_output.("test/tmp/ex_doc"))
+    assert config.output == "test/tmp/ex_doc"
+
+    {_, config} = ExDoc.generate_docs(project, version, opts_with_output.("test/tmp/ex_doc/"))
+    assert config.output == "test/tmp/ex_doc"
+
+    {_, config} = ExDoc.generate_docs(project, version, opts_with_output.("test/tmp/ex_doc//"))
+    assert config.output == "test/tmp/ex_doc"
+  end
+
+  test "использует специальный процессор уценки" do
+    project = "Elixir"
+    version = "1"
+
+    options = [
+      formatter: IdentityFormatter,
+      markdown_processor: Sample,
+      output: "test/tmp/ex_doc",
+      retriever: IdentityRetriever,
+      source_root: "root_dir",
+      source_beam: "beam_dir"
+    ]
+
+    ExDoc.generate_docs(project, version, options)
+    assert Application.fetch_env!(:ex_doc, :markdown_processor) == Sample
+  after
+    Application.delete_env(:ex_doc, :markdown_processor)
+  end
+
+  test "source_beam устанавливает исходный каталог" do
+    options = [
+      formatter: IdentityFormatter,
+      retriever: IdentityRetriever,
+      source_root: "root_dir",
+      source_beam: "beam_dir"
+    ]
+
+    {{source_dir, _retr_config}, _config} = ExDoc.generate_docs("Elixir", "1", options)
+    assert source_dir == options[:source_beam]
+  end
+
+  test "модуль форматирования не найден" do
+    project = "Elixir"
+    version = "1"
+
+    options = [
+      formatter: "pdf",
+      retriever: IdentityRetriever,
+      source_root: "root_dir",
+      source_beam: "beam_dir"
+    ]
+
+    assert_raise RuntimeError,
+                 "модуль форматирования «pdf» не найден",
+                 fn -> ExDoc.generate_docs(project, version, options) end
+  end
+
+  test "version" do
+    assert {:ok, _version} = Version.parse(ExDoc.version())
+  end
+end
